@@ -1,0 +1,21 @@
+ERWin 7.x
+
+CAEDM738sp2-b2235fci : Data Modeler, Model Navigator
+----------------------------------------------------------------------------------------
+AllFusion ERWin Data Modeler r7
+ME3VL-TCDG3-DX2NU-GGXHV-JV4FA
+M66VY-PLMHX-GYEQC-NJFQV-NXLCA
+3J6DW-QBZHF-GGCP4-MHN5V-SXAAA
+GJ7D2-PL7H7-HGGQL-PHTHD-QXUGA
+C63VL-PUNHP-DX2NU-GG7DD-AV4GA
+225VU-N4YG7-FYAPU-LH7LD-JW4EA
+
+
+AllFusion Model Navigator
+F65VU-SLLHK-DYAPU-VHTKE-JXBYA
+UW5VU-TCKG7-DYAPU-VG7FD-EXBVA
+AJ6VY-TVCJB-EYEQC-XHKMD-AXTSA
+TS4VQ-PLHHT-CX6PC-THFDV-CWUGA
+GN4DN-P4TGX-CF4N4-SHBCW-CWJAA
+KW6VY-TU2HF-EYEQC-XHPMD-CXTVA
+----------------------------------------------------------------------------------------//
