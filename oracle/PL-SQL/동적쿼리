@@ -1,0 +1,37 @@
+동적쿼리
+
+----------------------------------------------------------------------------------------
+원시동적쿼리 (Native Dynamic SQL, NDS)
+
+	EXECUTE IMMEDIATE SQL문_문자열 
+		[INTO OUT변수1, OUT변수2, ...]
+		[USING [ IN | OUT | INOUT ]] 매개변수1,  -- 디폴트값은 IN으로 생략가능
+		[IN | OUT | IN OUT] 매개변수2,
+		...
+
+
+	v_sql VARCHAR(1000) := '';
+
+	v_sql := 
+
+	'SELECT  ' ||
+	' COUNT(		' || tab_cols."컬럼명" || '),   ' ||  		
+	' MAX(			' || tab_cols."컬럼명" || '),   ' ||   
+	--' AVG(			' || tab_cols."컬럼명" || '),   ' || 
+	' MIN(			' || tab_cols."컬럼명" || ')	,   ' || 
+	' MAX(LENGTH(	' || tab_cols."컬럼명" || ')),   ' ||	
+	' AVG(LENGTH(	' || tab_cols."컬럼명" || ')),   ' ||	
+	' MIN(LENGTH(	' || tab_cols."컬럼명" || '))   ' ||	
+	' FROM HR.' || tab_cols."테이블명" 
+	;
+
+	EXECUTE IMMEDIATE v_sql INTO 
+		v_col_total_cnt,  	-- 전체레코드수
+		v_col_max,  		-- 최대값
+		-- v_col_avg,			-- 평균값
+		v_col_min,			-- 최소값
+		v_col_max_len,  	-- 최대길이
+		v_col_avg_len,		-- 평균길이
+		v_col_min_len		-- 최소길이
+	;
+----------------------------------------------------------------------------------------//
