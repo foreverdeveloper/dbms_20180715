@@ -3,55 +3,74 @@
 -----------------------------------------------------------------
 사분위수 계산 
 -----------------------------------------------------------------
-제 1 사분위수  - 1/4분위수 : PERCENTILE_DISC(0.25) WITHIN GROUP (ORDER BY QTY) OVER()
-제 3 사분위수 - 3/4분위수	  : PERCENTILE_DISC(0.75) WITHIN GROUP (ORDER BY QTY) OVER()
+제 1 사분위수  - 1/4분위수
+제 3 사분위수 - 3/4분위수	  
 
-PERCENTILE_DISC
+오라클 PERCENTILE 함수
 
-select sellerid, qty, percentile_disc(0.5) 
-within group (order by qty) 
-over() as median from winsales;
+	1.	PERCENTILE_CONT : 
+		지정한 백분위값의 데이터값을 찾는 데 정확히 일치하는 데이터값이 없으면,
+		지정한 백분위값의 좌우 데이터값(2개값)의 이동 평균을 Return.                                                   
 
-sellerid | qty | median
-----------+-----+--------
-        1 |  10 |     20
-        3 |  10 |     20
-        1 |  10 |     20
-        4 |  10 |     20
-        3 |  15 |     20
-        2 |  20 |     20
-        2 |  20 |     20
-        3 |  20 |     20
-        1 |  30 |     20
-        3 |  30 |     20
-        4 |  40 |     20
-(11 rows)
+		문법 : 
+			PERCENTILE_CONT() WITHIN GROUP(ORDER BY 데이터값컬럼) OVER(PARTITION BY 그루핑컬럼) (OVER절은 사용안하면 GROUP BY절을 사용해야 함)                                                                       
+
+	2.	PERCENTILE_DISC : 
+		지정한 백분위값의 데이터값을 찾는 데 정확히 일치하는 데이터값이 없으면 
+		지정한 백분위값의 좌우 데이터값중 정렬옵션에 따라 우선순위가 빠른 데이터값을 Return.                          
+
+		문법 : 
+			PERCENTILE_DISC() WITHIN GROUP(ORDER BY 데이터값컬럼) OVER(PARTITION BY 그루핑컬럼) (OVER절은 사용안하면 GROUP BY절을 사용해야 함)                                                                       
 
 
-select sellerid, qty, percentile_disc(0.5) 
-within group (order by qty) 
-over(partition by sellerid) as median from winsales;
+	예1)                                              
+		-- 모든 장비데이터를 조회하면서, 월별 PERCENTILE과 RANK를 구할 때. (데이터 RAW의 속성정보를 그대로 추출)
+		SELECT  YM, EQUIP, OPH 
+		      , PERCENTILE_DISC(0.2) WITHIN GROUP(ORDER BY OPH) OVER(PARTITION BY YM) AS PDISC   
+		      , PERCENTILE_CONT(0.2) WITHIN GROUP(ORDER BY OPH) OVER(PARTITION BY YM) AS PCONT 
+		FROM  EQUIP_AVG_OPH                          
+		WHERE 1=1                                               
+		AND OPH > 0 AND OPH < 24                 
+		ORDER BY YM_ID, OPH                         
+		;                                                                                                                                                         -- 결과 --
+	YM	       EQUIP	 OPH   	 		PDISC		PCONT                                                                    
+	------     ------     --------  -------  ------               
+	201102	 	A        4.147222	 	4.147222	5.389815                                                            
+	201102	 	B	     7.253704	 	4.147222	5.389815                                                            
+	201102	 	C	     18.30606	 	4.147222	5.389815                                                            
+	201103	…	…	…	…	…                
 
-sellerid | qty | median
-----------+-----+--------
-        2 |  20 |     20
-        2 |  20 |     20
-        4 |  10 |     10
-        4 |  40 |     10
-        1 |  10 |     10
-        1 |  10 |     10
-        1 |  30 |     10
-        3 |  10 |     15
-        3 |  15 |     15
-        3 |  20 |     15
-        3 |  30 |     15
-(11 rows) 
+	=> 월별(YM)로 장비들의 OPH를 오름차순 정렬옵션으로,
+	   PDISC는 지정한 백분위값=0.2에 정렬옵션기준으로 가장 가까운 데이터값(OPH)을 찾으므로 
+	   데이터의 벡분위값 0과 0.5중 0.2에 좀더 가까운 0에 해당하는 데이터값 4.147222가 Return됨.
+	   PCONT는 지정한 백분위값=0.2에 정렬옵션기준으로 이동평균값(4.147222+(7.253704-4.147222)*2/5 
+	   	: 0.2는 0과 0.5사이에서 0으로부터 2/5만큼 이동된 값) 5.389815 가 Return됨.          
 -----------------------------------------------------------------//
 
 
 
+-----------------------------------------------------------------
+표준편차 - stddev
+분산 - variance
+-----------------------------------------------------------------
+오라클 함수중에 분산(variance)과 표준편차(stddev)를 나타내는 함수 결과값이 왜 틀린가요.
+예를 들면 테이블에...테이타가
+2
+2
+5
+3개의 값이 있습니다.
+분산값을 계산하면..3개의 평균이 3 이니까. 각각의 편차가 -1,-1,2
+각각의 값을 제곱하면 1,1,4 값이 나옵니다..
+여기서 행의 갯수 3을 나누면 (1+1+4)/3 이렇게 하면 분산이 나오고 이 값(2)의 루트를 쒸우면 표준편차가 되지 않나요..
+그러나 오라클 함수로 하면 결과가. 분산 => 3  표준편차=>1.732...
+select variance(필드명) from 테이블명
+이렇게 결과값이 나와요...분산값이 2인데 3으로 나와요
+어떤게 맞는건지 제가 분산과 표준편차의 의미를 잘못 이해하고 있는건지 궁금합니다.
+오라클에서 정의하는 variance, stddev 함수는 오라클 documentation 에 나와 있는 것처럼, 
+기본적인 분산, 표준편차 함수와 정의가 조금 다릅니다.
 
-1/4분위수
-3/4분위수
-표준편차
-분산
+정확한 내용은 통계학 관련 텍스트와 오라클 doc, 그리고,
+표본분산(var_samp), 표본표준편차(stddev_samp) 함수를 참고하세요.
+
+
+-----------------------------------------------------------------//
