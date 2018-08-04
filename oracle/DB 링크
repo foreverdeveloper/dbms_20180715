@@ -1,0 +1,33 @@
+DB 링크
+
+--------------------------------------------------------------
+tnsnames.ora 파일에 DB정보를 저장하지 않고 바로 생성
+--------------------------------------------------------------
+CREATE DATABASE LINK TESTDB
+CONNECT TO SUSER
+IDENTIFIED BY "1234"
+USING '(DESCRIPTION =
+    (ADDRESS = (PROTOCOL = TCP)(HOST = 100.211.111.107)(PORT = 1521))
+    (CONNECT_DATA =
+      (SERVER = DEDICATED)
+      (SERVICE_NAME = SEP)
+    )
+)';
+
+DB Link명 : LOCAL_DB => @LOCA_DB 이렇게 사용하시면 됩니다.
+USER명 : SUSER
+비밀번호 : 1234
+USING 에 사용된 소스는 접속정보랍니다.
+
+--------------------------------------------------------------//
+
+
+--------------------------------------------------------------
+
+--------------------------------------------------------------
+SELECT * FROM ALL_TAB_COLUMNS@[DBLINKNAME] 
+WHERE TABLE_NAME = '[TABLENAME]'
+ORDER BY COLUMN_ID;
+--------------------------------------------------------------//
+
+
