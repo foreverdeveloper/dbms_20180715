@@ -96,7 +96,6 @@ WHERE  ROWNUM  <=  [개수]  ;
 -------------------------------------------------------------------------------------
 엑셀 출력을 위한 종합 쿼리 작성
 -------------------------------------------------------------------------------------
-
 DECLARE
     CURSOR cur_tab_cols ( cp_USER ALL_TAB_COLS.OWNER%TYPE )
     IS
@@ -121,6 +120,8 @@ DECLARE
           T.OWNER  =  cp_USER    -- 이용자 매개변수 받음
         ORDER  BY  1, T.TABLE_NAME,  T.COLUMN_ID  ASC  ;
 
+    v_tab_count NUMBER; -- 출력용 테이블을 존재 유무 체크
+
     v_sql VARCHAR2(1000) := '';
 
     v_col_total_cnt NUMBER;
@@ -141,8 +142,60 @@ DECLARE
     v_q1_num    NUMBER;   -- 제 1 사분위수 Quartile   - 1/4분위수
     v_q3_num    NUMBER;   -- 제 3 사분위수 Quartile - 3/4분위수
     ------------------------------------------
+    v_stddev      NUMBER;   -- 표준편차
+    v_variance    NUMBER;   -- 분산 
     ------------------------------------------
 BEGIN
+DBMS_OUTPUT.DISABLE;
+DBMS_OUTPUT.ENABLE(1000000);
+    
+    SELECT COUNT(*) INTO v_tab_count
+    -- FROM USER_TABLES
+    FROM ALL_TAB_COLS
+    WHERE OWNER= 'HR' AND TABLE_NAME = 'TMP_PROFILING';
+    
+    DBMS_OUTPUT.PUT_LINE('v_tab_count ==>' || v_tab_count);
+
+    IF v_tab_count > 0 THEN    
+ 
+        v_sql:= ' DROP TABLE HR.TMP_PROFILING '; 
+        DBMS_OUTPUT.PUT_LINE('== DROP : TMP_PROFILING ==');
+        EXECUTE IMMEDIATE v_sql; 
+    END IF;
+ 
+    v_sql := ' CREATE TABLE HR.TMP_PROFILING ( ' || 
+         '        "번호"        NUMBER ' ||
+         '     ,  "테이블명"     VARCHAR2(200)     ' ||
+         '     ,  "컬럼명"       VARCHAR2(200) ' ||
+         '     ,  "순서"         NUMBER ' ||
+         '     ,  "자료형"       VARCHAR2(200) ' ||
+         '     ,  "길이"         NUMBER ' ||
+         '     ,  "정밀도"       NUMBER ' ||
+         '     ,  "NULL여부"    VARCHAR2(10)' ||
+         '     ,  "기본값"      VARCHAR2(200)' ||  -- LONG
+         '     ,  "설명"        VARCHAR2(4000) ' ||
+         '     ,  "전체레코드수"    NUMBER ' ||
+         '     ,  "최대값"    VARCHAR2(200)' ||
+         '     ,  "평균값"    VARCHAR2(200)' ||
+         '     ,  "최소값"    VARCHAR2(200)' ||
+         '     ,  "최대길이"    NUMBER' ||
+         '     ,  "평균길이"    NUMBER' ||
+         '     ,  "최소길이"    NUMBER' ||
+         '     ,  "유일값수"    NUMBER' ||
+         '     ,  "NULL값수"    NUMBER' ||
+         '     ,  "최대빈도값"   NUMBER ' ||
+         '     ,  "최소빈도값"   NUMBER ' ||
+         '     ,  "1/4분위수"    NUMBER ' ||
+         '     ,  "3/4분위수"    NUMBER ' ||
+         '     ,  "표준편차"      NUMBER' ||
+         '     ,  "분산"        NUMBER ' ||
+         '     ) ' ;
+
+    DBMS_OUTPUT.PUT_LINE('== TMP_PROFILING ==' || v_sql );
+
+    EXECUTE IMMEDIATE v_sql; 
+
+
     FOR tab_cols IN cur_tab_cols('HR')
     LOOP
         /*
@@ -163,7 +216,6 @@ FROM      [테이블]  ;
         'SELECT  ' ||
         ' COUNT(        ' || tab_cols."컬럼명" || '),   ' ||
         ' MAX(            ' || tab_cols."컬럼명" || '),   ' ||
-        --' AVG(            ' || tab_cols."컬럼명" || '),   ' ||
         ' MIN(            ' || tab_cols."컬럼명" || ')    ,   ' ||
         ' MAX(LENGTH(    ' || tab_cols."컬럼명" || ')),   ' ||
         ' AVG(LENGTH(    ' || tab_cols."컬럼명" || ')),   ' ||
@@ -175,7 +227,6 @@ FROM      [테이블]  ;
         EXECUTE IMMEDIATE v_sql INTO
             v_col_total_cnt,      -- 전체레코드수
             v_col_max,          -- 최대값
-            -- v_col_avg,            -- 평균값
             v_col_min,            -- 최소값
             v_col_max_len,      -- 최대길이
             v_col_avg_len,        -- 평균길이
@@ -249,7 +300,7 @@ WHERE  ROWNUM  <=  [개수]
 */
         DBMS_OUTPUT.PUT_LINE('=============== 4 ================');
         v_sql :=
-        'SELECT CNT ' ||
+        'SELECT NVL(MAX(CNT),NULL) ' ||
         ' FROM ' ||
         ' ( ' ||
         '   SELECT ' || tab_cols."컬럼명" || ', COUNT( ' ||  tab_cols."컬럼명" || ') AS CNT' ||
@@ -266,7 +317,7 @@ WHERE  ROWNUM  <=  [개수]
 
         DBMS_OUTPUT.PUT_LINE('=============== 5 ================');
         v_sql :=
-        'SELECT CNT ' ||
+        'SELECT NVL(MAX(CNT),NULL) ' ||
         ' FROM ' ||
         ' ( ' ||
         '   SELECT ' || tab_cols."컬럼명" || ', COUNT( ' ||  tab_cols."컬럼명" || ') AS CNT' ||
@@ -285,11 +336,13 @@ WHERE  ROWNUM  <=  [개수]
                             tab_cols."자료형" || ')만 고려 ================');
         IF tab_cols."자료형" IN ( 'NUMBER') THEN
           v_sql :=
-
+            'SELECT NVL(MAX(COL1), NULL) FROM ' ||
+            '(' ||
             'SELECT  ' ||
-            ' PERCENTILE_DISC(0.25) WITHIN GROUP (ORDER BY ' || tab_cols."컬럼명" || ' ) OVER() ' ||
+            ' PERCENTILE_DISC(0.25) WITHIN GROUP (ORDER BY ' || tab_cols."컬럼명" || ' ) OVER() AS COL1' ||
             ' FROM HR.' || tab_cols."테이블명" ||
-            ' WHERE ROWNUM = 1 '
+            ' WHERE ROWNUM = 1 ' ||
+            ')'
             ;
             DBMS_OUTPUT.PUT_LINE('v_sql ==> ' || v_sql);
 
@@ -300,15 +353,16 @@ WHERE  ROWNUM  <=  [개수]
           v_q1_num :=  NULL;
         END IF;
 
-        DBMS_OUTPUT.PUT_LINE('=============== 7. 3/4분위수는 숫자형(현재 타입: ' ||
-                            tab_cols."자료형" || ')만 고려 ================');
+        DBMS_OUTPUT.PUT_LINE('=============== 7. 3/4분위수는 숫자형만 고려 ================');
         IF tab_cols."자료형" IN ( 'NUMBER') THEN
           v_sql :=
-
+            'SELECT NVL(MAX(COL1), NULL) FROM ' ||
+            '(' ||
             'SELECT  ' ||
-            ' PERCENTILE_DISC(0.75) WITHIN GROUP (ORDER BY ' || tab_cols."컬럼명" || ' ) OVER() ' ||
+            ' PERCENTILE_DISC(0.75) WITHIN GROUP (ORDER BY ' || tab_cols."컬럼명" || ' ) OVER() AS COL1' ||
             ' FROM HR.' || tab_cols."테이블명" ||
-            ' WHERE ROWNUM = 1 '
+            ' WHERE ROWNUM = 1 ' ||
+            ')'            
             ;
             DBMS_OUTPUT.PUT_LINE('v_sql ==> ' || v_sql);
 
@@ -318,12 +372,46 @@ WHERE  ROWNUM  <=  [개수]
         ELSE
           v_q3_num :=  NULL;
         END IF;
-        DBMS_OUTPUT.PUT_LINE('=============== 8. 표준편차 (숫자만 고려)'   || ' ================');
-        DBMS_OUTPUT.PUT_LINE('=============== 9. 분산 (숫자만 고려)' || ' ================');
+
+        DBMS_OUTPUT.PUT_LINE('=============== 8. 표준편차 (숫자만 고려) ================');
+        IF tab_cols."자료형" IN ( 'NUMBER') THEN
+          v_sql :=
+
+            'SELECT  ' ||
+            ' STDDEV( ' || tab_cols."컬럼명" || ' ) ' ||
+            ' FROM HR.' || tab_cols."테이블명" ||
+            ' WHERE ROWNUM = 1 '
+            ;
+            DBMS_OUTPUT.PUT_LINE('v_sql ==> ' || v_sql);
+
+            EXECUTE IMMEDIATE v_sql INTO
+                v_stddev            -- 표준편차
+            ;
+        ELSE
+          v_stddev :=  NULL;
+        END IF;        
+
+        DBMS_OUTPUT.PUT_LINE('=============== 9. 분산 (숫자만 고려) ===============');
+        IF tab_cols."자료형" IN ( 'NUMBER') THEN
+          v_sql :=
+
+            'SELECT  ' ||
+            ' VARIANCE(' || tab_cols."컬럼명" || ' ) ' ||
+            ' FROM HR.' || tab_cols."테이블명" ||
+            ' WHERE ROWNUM = 1 '
+            ;
+            DBMS_OUTPUT.PUT_LINE('v_sql ==> ' || v_sql);
+
+            EXECUTE IMMEDIATE v_sql INTO
+                v_variance            -- 분산
+            ;
+        ELSE
+          v_variance :=  NULL;
+        END IF;
 
 
-
-        DBMS_OUTPUT.PUT_LINE(tab_cols."번호"
+        DBMS_OUTPUT.PUT_LINE(
+            tab_cols."번호"
             || ',' || tab_cols."테이블명"
             || ',' || tab_cols."컬럼명"
             || ',' || tab_cols."순서"
@@ -336,7 +424,7 @@ WHERE  ROWNUM  <=  [개수]
             -----------------------------------------
             || ',' || v_col_total_cnt    --tab_cols."전체레코드수"
             || ',' || v_col_max     --tab_cols."최대값"
---            || ',' || v_col_avg     --tab_cols."평균값"
+            || ',' || v_col_avg     --tab_cols."평균값"
             || ',' || v_col_min          --tab_cols."최소값"
             || ',' || v_col_max_len      --tab_cols."최대길이"
             || ',' || v_col_avg_len          --tab_cols."평균길이"
@@ -352,17 +440,41 @@ WHERE  ROWNUM  <=  [개수]
             || ',' || v_q1_num      -- 1/4분위수
             || ',' || v_q3_num      -- 최대빈도
             -----------------------------------------
+            || ',' || v_stddev      -- 표준편차
+            || ',' || v_variance      -- 분산
             );
 
+
+      INSERT INTO HR.TMP_PROFILING(
+       "번호", "테이블명", "컬럼명", 
+       "순서", "자료형", "길이", 
+       "정밀도", "NULL여부", "기본값", 
+       "설명", "전체레코드수", "최대값", 
+       "평균값", "최소값", "최대길이", 
+       "평균길이", "최소길이", "유일값수", 
+       "NULL값수", "최대빈도값", "최소빈도값", 
+       "1/4분위수", "3/4분위수", "표준편차", 
+       "분산") 
+      VALUES (
+        tab_cols."번호", tab_cols."테이블명", tab_cols."컬럼명"
+        , tab_cols."순서", tab_cols."자료형", tab_cols."길이"
+        , tab_cols."정밀도", tab_cols."NULL여부", tab_cols."기본값"
+        , tab_cols."설명", v_col_total_cnt, v_col_max
+        , v_col_avg, v_col_min , v_col_max_len
+        , v_col_avg_len , v_col_min_len , v_col_distinct_cnt
+        , v_col_null_cnt , v_max_freq_cnt, v_min_freq_cnt
+        , v_q1_num , v_q3_num , v_stddev
+        , v_variance
+      );
 
     END LOOP;
 
     EXCEPTION WHEN OTHERS THEN
+        NULL; -- 에러 무시 계속 진행 
         DBMS_OUTPUT.PUT_LINE('SQL ERROR CODE: ' || SQLCODE)    ;
         DBMS_OUTPUT.PUT_LINE('SQL ERROR MESSAGE: ' || SQLERRM); -- 매개변수 없는 SQLERRM
         DBMS_OUTPUT.PUT_LINE(SQLERRM(SQLCODE)); -- 매개변수 있는 SQLERRM
         DBMS_OUTPUT.PUT_LINE(DBMS_UTILITY.FORMAT_ERROR_BACKTRACE);
 
 END;
-
 -------------------------------------------------------------------------------------//

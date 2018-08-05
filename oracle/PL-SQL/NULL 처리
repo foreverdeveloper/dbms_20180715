@@ -1,0 +1,47 @@
+NULL 처리
+
+NVL() : NULL 값을 다른 값으로 바꿀 때
+	NVL(mgr, 0)
+
+NVL2() : NVL함수 + DECODE 함수의 개념
+	NVL2(expr, expr1, expr2)
+		 expr의 값이 NULL이 아닐 경우에는 expr1의 값을 반환 
+		 NULL일 경우에는 expr2의 값을 반환
+
+NULLIF(exp1, exp2) : 
+	exp1값과 exp2값이 동일하면 NULL을 그렇지 않으면 exp1을 반환
+	CASE WHEN expr1 = expr2 THEN NULL ELSE expr1 END
+
+-----------------------------------------------------------------
+COALESCE : NVL 함수와 비슷
+	COALESCE(expr1,expr2,expr3,…)
+		expr1이 NULL이 아니면 expr1값			 
+		그렇지 않으면 COALESCE(expr2,expr3,…)값을 반환.
+
+	값이 널이면, 값이 없는 것이 아니라, 0을 리턴함.
+	------------------------------------------------------
+	the following code will return 0 if MAX(cid) is NULL
+
+	SELECT COALESCE(MAX(cid), 0)   -- MAX 함수를 쓰면 무조건 값이 나온다.
+	FROM   itemconfiguration
+	------------------------------------------------------
+
+	-- 아래 문장을 실행해 보자.
+	SELECT COALESCE(comm,1), comm 
+	  FROM emp;
+	 
+	 
+	COALESCE(COMM,1)       COMM
+	---------------- ----------
+	               1
+	             300        300
+	             500        500
+	               1
+	            1400       1400
+	               1
+	               1
+	               1
+	               0          0
+	               1
+	               1  		
+-----------------------------------------------------------------//

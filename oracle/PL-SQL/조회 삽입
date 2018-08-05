@@ -1,0 +1,266 @@
+------------------------------------------------------------------
+조회 삽입 
+------------------------------------------------------------------
+1. 테이블 스키마만 생성함. - PK, 제약사항 제외
+CREATE TABLE NEW_TABLE AS
+SELECT * FROM OLD_TABLE -- 주의 '' 와 같이 길이가 0인 값을 지정 안됨. (' ')
+WHERE 1 = 2
+
+2. 데이터도 복사함 - 이렇게 생성하면, 컬럼의 최대 크기로 잡힘. 
+CREATE TABLE NEW_TABLE AS -- AS 생략 불가
+SELECT * FROM OLD_TABLE
+
+
+3. 테이블이 이미 생성되었고 데이터만 복사한다면,
+INSERT INTO NEW_TABLE
+SELECT * FROM OLD_TABLE
+
+4. 테이블 이름 변경
+ALTER TABLE OLD_TABLE RENAME TO NEW_TABLE
+
+------------------------------------------------------------------//
+
+------------------------------------------------------------------
+테이블이 존재하면 DROP한 후, 처리할 때
+------------------------------------------------------------------
+DECLARE 
+
+l_string varchar2(4000); -- l = local variable
+-- l_exists number; 
+l_count number;
+
+l_table_name varchar2(20):='&table_name'; 
+
+BEGIN 
+
+-- SELECT 1 INTO l_exists 
+SELECT COUNT(*) INTO l_count 
+FROM schema.user_table 
+WHERE table_name = l_table_name; 
+
+-- IF l_exists THEN  -- 이 부분 문제 생김
+IF l_count > 0 THEN 
+l_string: = 'DROP TABLE ||' l_table_name; 
+ELSE 
+l_string := ' CREATE TABLE ' || l_table_name||' SELECT * FROM 
+'||schema.table_name|| ' WHERE table_name =' || l_table_name; 
+END IF; 
+
+EXECUTE IMMEDIATE l_string; 
+EXCEPTION WHEN OTHERS THEN 
+NULL; 
+END; 
+------------------------------------------------------------------//
+
+------------------------------------------------------------------
+실패 예제 - 데이터 컬럼의 최대 크기로 잡혀서, 이후, INSERT할 큰 값이 안들어감.
+------------------------------------------------------------------
+    SELECT COUNT(*) INTO v_tab_count
+    -- FROM USER_TABLES
+    FROM ALL_TAB_COLS
+    WHERE OWNER= 'HR' AND TABLE_NAME = 'TMP_PROFILING';
+    
+    DBMS_OUTPUT.PUT_LINE('v_tab_count ==>' || v_tab_count);
+
+    IF v_tab_count > 0 THEN    
+ 
+        v_sql:= ' DROP TABLE HR.TMP_PROFILING '; 
+        DBMS_OUTPUT.PUT_LINE('== DROP : TMP_PROFILING ==');
+        EXECUTE IMMEDIATE v_sql; 
+    END IF;
+ 
+    v_sql := ' CREATE TABLE HR.TMP_PROFILING AS ' || 
+         '     SELECT          '  || 
+         '          0 AS "번호" ' ||
+         '     , '' '' AS "테이블명"    ' ||
+         '     , '' '' AS "컬럼명"    ' ||
+         '     , 0  AS "순서"    ' ||
+         '     , '' '' AS "자료형"    ' ||
+         '     , 0  AS "길이"    ' ||
+         '     , 0  AS "정밀도"    ' ||
+         '     , '' '' AS "NULL여부"    ' ||
+         '     , 0  AS "기본값"    ' ||
+         '     , '' '' AS "설명"    ' ||
+         '     , 0  AS "전체레코드수"    ' ||
+         '     , 0  AS  "최대값"    ' ||
+         '     , 0  AS  "평균값"    ' ||
+         '     , 0  AS  "최소값"    ' ||
+         '     , 0  AS  "최대길이"    ' ||
+         '     , 0  AS  "평균길이"    ' ||
+         '     , 0  AS  "최소길이"    ' ||
+         '     , 0  AS  "유일값수"    ' ||
+         '     , 0  AS  "NULL값수"    ' ||
+         '     , 0  AS  "최대빈도값"    ' ||
+         '     , 0  AS  "최소빈도값"    ' ||
+         '     , 0  AS "1/4분위수"    ' ||
+         '     , 0  AS "3/4분위수"    ' ||
+         '     , 0  AS "표준편차"    ' ||
+         '     , 0  AS "분산"    ' ||
+         '     FROM DUAL    ' ||
+         '     WHERE 1 = 2    ' ;
+
+    DBMS_OUTPUT.PUT_LINE('== TMP_PROFILING ==' || v_sql );
+
+    EXECUTE IMMEDIATE v_sql; 
+------------------------------------------------------------------//
+
+
+--------------------------------1----------------------------------
+쌍따옴표 처리
+-------------------------------------------------------------------
+	SELECT CHR(34) || '쌍따옴표' || CHR(34) FROM DUAL;
+------------------------------------------------------------------//
+
+/* drop if exists: Table */
+BEGIN
+   EXECUTE IMMEDIATE 'DROP TABLE mytable';
+EXCEPTION
+   WHEN OTHERS THEN
+      IF SQLCODE != -942 THEN
+         RAISE;
+      END IF;
+END;
+ 
+/* drop if exists: Sequence */
+BEGIN
+  EXECUTE IMMEDIATE 'DROP SEQUENCE ' || sequence_name;
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2289 THEN
+      RAISE;
+    END IF;
+END;
+View
+ 
+/* drop if exists: Function */
+BEGIN
+  EXECUTE IMMEDIATE 'DROP VIEW ' || view_name;
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -942 THEN
+      RAISE;
+    END IF;
+END;
+ 
+/* drop if exists: Trigger */
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TRIGGER ' || trigger_name;
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -4080 THEN
+      RAISE;
+    END IF;
+END;
+ 
+/* drop if exists: Index */
+BEGIN
+  EXECUTE IMMEDATE 'DROP INDEX ' || index_name;
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -1418 THEN
+      RAISE;
+    END IF;
+END;
+ 
+/* drop if exists: Column */
+BEGIN
+  EXECUTE IMMEDIATE 'ALTER TABLE ' || table_name
+                || ' DROP COLUMN ' || column_name;
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -904 THEN
+      RAISE;
+    END IF;
+END;
+ 
+/* drop if exists: Database Link */
+BEGIN
+  EXECUTE IMMEDIATE 'DROP DATABASE LINK ' || dblink_name;
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2024 THEN
+      RAISE;
+    END IF;
+END;
+ 
+/* drop if exists: Materialized View */
+BEGIN
+  EXECUTE IMMEDIATE 'DROP MATERIALIZED VIEW ' || mview_name;
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -12003 THEN
+      RAISE;
+    END IF;
+END;
+ 
+/* drop if exists: Type */
+BEGIN
+  EXECUTE IMMEDIATE 'DROP TYPE ' || type_name;
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -4043 THEN
+      RAISE;
+    END IF;
+END;
+ 
+/* drop if exists: Constraint */
+BEGIN
+  EXECUTE IMMEDIATE 'ALTER TABLE ' || table_name
+            || ' DROP CONSTRAINT ' || constraint_name;
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -2443 THEN
+      RAISE;
+    END IF;
+END;
+ 
+/* drop if exists: Scheduler Job */
+BEGIN
+  DBMS_SCHEDULER.drop_job(job_name);
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -27475 THEN
+      RAISE;
+    END IF;
+END;
+ 
+/* drop if exists: User / Schema */
+BEGIN
+  EXECUTE IMMEDIATE 'DROP USER ' || user_name;
+  /* you may or may not want to add CASCADE */
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -1918 THEN
+      RAISE;
+    END IF;
+END;
+ 
+/* drop if exists: Package */
+BEGIN
+  EXECUTE IMMEDIATE 'DROP PACKAGE ' || package_name;
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -4043 THEN
+      RAISE;
+    END IF;
+END;
+ 
+/* drop if exists: Procedure */
+BEGIN
+  EXECUTE IMMEDIATE 'DROP PROCEDURE ' || procedure_name;
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -4043 THEN
+      RAISE;
+    END IF;
+END;
+ 
+/* drop if exists: Function */
+BEGIN
+  EXECUTE IMMEDIATE 'DROP FUNCTION ' || function_name;
+EXCEPTION
+  WHEN OTHERS THEN
+    IF SQLCODE != -4043 THEN
+      RAISE;
+    END IF;
+END;
