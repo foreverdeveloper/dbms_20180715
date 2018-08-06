@@ -1,0 +1,17 @@
+타입
+
+SELECT COLTYPE FROM COL
+WHERE
+   TNAME ='TABLE_NAME'
+
+
+- TNAME : Table Name
+- COLNO : Columns No
+- CNAME : Columns Name
+- COLTYPE : Columns Type
+- WIDTH : Columns Size
+- SCALE
+- PRECISION
+- NULLS : Columns Null Check
+- DEFAULTVAL : Columns Default Value
+- CHARCTER_SET_NAME
